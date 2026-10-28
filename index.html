@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SRIJON IT — Image Storage</title>
+<style>
+  :root { --primary:#2563eb; --bg:#f8fafc; --card:#ffffff; --text:#0f172a; --muted:#64748b; --border:#e2e8f0; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif; background:var(--bg); color:var(--text); }
+  header { background:var(--card); border-bottom:1px solid var(--border); padding:18px 24px; position:sticky; top:0; z-index:10; }
+  .head-inner { max-width:1200px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; }
+  .brand { display:flex; align-items:center; gap:10px; font-weight:800; font-size:18px; }
+  .brand img { height:34px; width:auto; }
+  .brand span { color:var(--primary); }
+  .btn { display:inline-flex; align-items:center; gap:6px; background:var(--primary); color:#fff; text-decoration:none; padding:9px 16px; border-radius:9px; font-size:14px; font-weight:600; border:none; cursor:pointer; }
+  .btn:hover { filter:brightness(1.08); }
+  .btn.ghost { background:#fff; color:var(--text); border:1px solid var(--border); }
+  main { max-width:1200px; margin:0 auto; padding:24px; }
+  .stats { color:var(--muted); font-size:14px; margin-bottom:16px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:16px; }
+  .card { background:var(--card); border:1px solid var(--border); border-radius:14px; overflow:hidden; display:flex; flex-direction:column; transition:box-shadow .15s; }
+  .card:hover { box-shadow:0 8px 24px rgba(15,23,42,.09); }
+  .thumb { aspect-ratio:4/3; background:#f1f5f9; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+  .thumb img { width:100%; height:100%; object-fit:cover; }
+  .meta { padding:10px 12px; display:flex; flex-direction:column; gap:8px; }
+  .fname { font-size:13px; font-weight:600; word-break:break-all; line-height:1.35; }
+  .fsize { font-size:11px; color:var(--muted); }
+  .actions { display:flex; gap:6px; }
+  .actions button, .actions a { flex:1; font-size:12px; padding:7px 8px; border-radius:7px; border:1px solid var(--border); background:#fff; cursor:pointer; text-align:center; text-decoration:none; color:var(--text); font-weight:600; }
+  .actions button:hover, .actions a:hover { background:#eff6ff; border-color:#bfdbfe; color:var(--primary); }
+  .empty { text-align:center; padding:70px 20px; color:var(--muted); background:var(--card); border:1px dashed var(--border); border-radius:14px; }
+  .empty h3 { color:var(--text); margin:0 0 8px; }
+  .toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(80px); background:#0f172a; color:#fff; padding:11px 20px; border-radius:10px; font-size:14px; opacity:0; transition:all .25s; pointer-events:none; }
+  .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+  footer { text-align:center; padding:28px 20px; color:var(--muted); font-size:13px; }
+  @media (max-width:560px){ .grid { grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); } main { padding:16px; } }
+</style>
+</head>
+<body>
+<header>
+  <div class="head-inner">
+    <div class="brand"><img src="https://srijonit.com/Logo.png" alt="Logo"><div>SRIJON <span>IT</span> <span style="color:var(--muted);font-weight:600;font-size:14px">/ Image Storage</span></div></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <a class="btn ghost" href="https://github.com/abdurrazzaq583/images/upload/main" target="_blank" rel="noopener">⬆️ Upload</a>
+      <a class="btn" href="https://github.com/abdurrazzaq583/images" target="_blank" rel="noopener">GitHub Repo</a>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="stats" id="stats">Loading images…</div>
+  <div class="grid" id="grid"></div>
+  <div class="empty" id="empty" style="display:none">
+    <h3>এখনো কোনো ছবি নেই</h3>
+    <p>উপরে <b>Upload</b> বাটনে ক্লিক করে ছবি আপলোড করুন।<br>আপলোডের পর এখানে অটো দেখাবে, লিংক হবে <b>https://img.srijonit.com/ফাইলনাম</b></p>
+  </div>
+</main>
+
+<footer>SRIJON IT &copy; 2026 — Image Storage · img.srijonit.com</footer>
+<div class="toast" id="toast">Link copied!</div>
+
+<script>
+const REPO = 'abdurrazzaq583/images';
+const BRANCH = 'main';
+const BASE = 'https://img.srijonit.com/';
+const IMG = /\.(png|jpe?g|gif|webp|svg|avif|bmp|ico)$/i;
+
+const grid = document.getElementById('grid');
+const stats = document.getElementById('stats');
+const empty = document.getElementById('empty');
+const toast = document.getElementById('toast');
+
+function fmtSize(b){
+  if(b < 1024) return b + ' B';
+  if(b < 1048576) return (b/1024).toFixed(1) + ' KB';
+  return (b/1048576).toFixed(2) + ' MB';
+}
+function showToast(msg){
+  toast.textContent = msg;
+  toast.classList.add('show');
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(()=>toast.classList.remove('show'), 1800);
+}
+async function copyText(text){
+  try{
+    await navigator.clipboard.writeText(text);
+    showToast('Link copied: ' + text);
+  }catch(e){
+    const ta = document.createElement('textarea');
+    ta.value = text; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); ta.remove();
+    showToast('Link copied!');
+  }
+}
+
+async function load(){
+  try{
+    const res = await fetch(`https://api.github.com/repos/${REPO}/contents/?ref=${BRANCH}`, {cache:'no-store'});
+    if(!res.ok) throw new Error('GitHub API ' + res.status);
+    const items = await res.json();
+    const images = items.filter(i => i.type === 'file' && IMG.test(i.name));
+    images.sort((a,b) => a.name.localeCompare(b.name));
+
+    stats.textContent = `${images.length} image${images.length===1?'':'s'} · ${BASE}`;
+    grid.innerHTML = '';
+    if(!images.length){ empty.style.display = 'block'; return; }
+    empty.style.display = 'none';
+
+    for(const img of images){
+      const url = BASE + encodeURIComponent(img.name).replace(/%2F/g,'/');
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.innerHTML = `
+        <div class="thumb"><img loading="lazy" src="${url}" alt="${img.name}"></div>
+        <div class="meta">
+          <div class="fname">${img.name}</div>
+          <div class="fsize">${fmtSize(img.size)}</div>
+          <div class="actions">
+            <button type="button">Copy Link</button>
+            <a href="${url}" target="_blank" rel="noopener">Open</a>
+          </div>
+        </div>`;
+      card.querySelector('button').addEventListener('click', () => copyText(url));
+      grid.appendChild(card);
+    }
+  }catch(e){
+    stats.textContent = 'লোড করা যায়নি: ' + e.message;
+    empty.style.display = 'block';
+    empty.innerHTML = '<h3>তালিকা লোড হয়নি</h3><p>GitHub API লিমিট হতে পারে। কিছুক্ষণ পর রিফ্রেশ করুন।</p>';
+  }
+}
+load();
+</script>
+</body>
+</html>
